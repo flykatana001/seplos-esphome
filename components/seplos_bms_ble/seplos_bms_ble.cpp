@@ -5,6 +5,8 @@ namespace esphome {
 namespace seplos_bms_ble {
 
 static const char *TAG = "seplos_bms_ble";
+static const uint16_t SEPLOS_SERVICE_UUID = 0xFFE0;
+static const uint16_t SEPLOS_CHAR_UUID = 0xFFE1;
 
 void SeplosBmsBle::dump_config() {
   ESP_LOGCONFIG(TAG, "Seplos V2 BLE BMS");
@@ -12,7 +14,7 @@ void SeplosBmsBle::dump_config() {
 
 void SeplosBmsBle::loop() {
   const uint32_t now = millis();
-  if (connected_ && now - last_poll_ > 3000) {
+  if (connected_ && write_handle_ != 0 && now - last_poll_ > 3000) {
     poll_status();
     last_poll_ = now;
   }
@@ -25,7 +27,16 @@ void SeplosBmsBle::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t
       break;
     case ESP_GATTC_DISCONNECT_EVT:
       connected_ = false;
+      write_handle_ = 0;
       break;
+    case ESP_GATTC_SEARCH_CMPL_EVT: {
+      auto *chr = this->parent()->get_characteristic(SEPLOS_SERVICE_UUID, SEPLOS_CHAR_UUID);
+      if (chr != nullptr) {
+        write_handle_ = chr->handle;
+        esp_ble_gattc_register_for_notify(this->parent()->get_gattc_if(), this->parent()->get_conn_id(), write_handle_);
+      }
+      break;
+    }
     case ESP_GATTC_NOTIFY_EVT:
       this->on_ble_data(std::vector<uint8_t>(param->notify.value, param->notify.value + param->notify.value_len));
       break;
@@ -36,8 +47,8 @@ void SeplosBmsBle::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t
 
 void SeplosBmsBle::poll_status() {
   uint8_t frame[] = {0xDD, 0xA5, 0x03, 0x00, 0xFF, 0xFD, 0x77};
-  esp_ble_gattc_write_char(this->parent()->gattc_if, this->parent()->conn_id, 
-                           this->parent()->write_handle, sizeof(frame), frame, 
+  esp_ble_gattc_write_char(this->parent()->get_gattc_if(), this->parent()->get_conn_id(), 
+                           write_handle_, sizeof(frame), frame, 
                            ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
 }
 
@@ -58,11 +69,3 @@ void SeplosBmsBle::on_ble_data(const std::vector<uint8_t> &data) {
   if (cycle_sensor_) cycle_sensor_->publish_state(cycles);
 
   int cell_start = 21;
-  for (int i = 0; i < cell_count && i < (int)cell_sensors_.size(); i++) {
-    float cv = ((p[cell_start + i*2] << 8) | p[cell_start + i*2 + 1]) / 1000.0f;
-    cell_sensors_[i]->publish_state(cv);
-  }
-}
-
-}  // namespace seplos_bms_ble
-}  // namespace esphome
