@@ -1,5 +1,0 @@
-seplos_bms_ble:
-  id: seplos
-  ble_client_id: seplos_client
-  voltage:
-    name: "Seplos Voltage"
