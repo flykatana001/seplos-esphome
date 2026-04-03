@@ -33,7 +33,7 @@ void SeplosBmsBle::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t
       auto *chr = this->parent()->get_characteristic(SEPLOS_SERVICE_UUID, SEPLOS_CHAR_UUID);
       if (chr != nullptr) {
         write_handle_ = chr->handle;
-        esp_ble_gattc_register_for_notify(this->parent()->get_gattc_if(), this->parent()->get_conn_id(), write_handle_);
+        esp_ble_gattc_register_for_notify(this->parent()->get_gattc_if(), this->parent()->get_conn_id(), &write_handle_);
       }
       break;
     }
@@ -69,3 +69,11 @@ void SeplosBmsBle::on_ble_data(const std::vector<uint8_t> &data) {
   if (cycle_sensor_) cycle_sensor_->publish_state(cycles);
 
   int cell_start = 21;
+  for (int i = 0; i < cell_count && i < (int)cell_sensors_.size(); i++) {
+    float cv = ((p[cell_start + i*2] << 8) | p[cell_start + i*2 + 1]) / 1000.0f;
+    cell_sensors_[i]->publish_state(cv);
+  }
+}
+
+}  // namespace seplos_bms_ble
+}  // namespace esphome
