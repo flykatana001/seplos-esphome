@@ -46,6 +46,22 @@ void SeplosBmsBle::on_ble_data(const std::vector<uint8_t> &data) {
     cell_sensors[i]->publish_state(cv);
   }
 }
+#include "esphome/core/component.h"
+
+namespace esphome {
+namespace seplos_bms_ble {
+
+static const char *TAG = "seplos_bms_ble";
+
+void SeplosBmsBle::dump_config() {
+  ESP_LOGCONFIG(TAG, "Seplos BMS BLE:");
+}
+
+}  // namespace seplos_bms_ble
+}  // namespace esphome
+
+REGISTER_COMPONENT(esphome::seplos_bms_ble::SeplosBmsBle, "seplos_bms_ble");
+
 
 }  // namespace seplos_bms_ble
 }  // namespace esphome
