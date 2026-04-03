@@ -1,0 +1,8 @@
+{
+  "domain": "seplos_bms_ble",
+  "name": "Seplos BMS BLE",
+  "version": "1.0.0",
+  "requirements": [],
+  "dependencies": [],
+  "codeowners": ["@flykatana001"]
+}
