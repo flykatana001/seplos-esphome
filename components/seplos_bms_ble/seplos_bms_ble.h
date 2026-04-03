@@ -24,7 +24,8 @@ class SeplosBmsBle : public ble_client::BLEClientNode, public Component {
   void poll_status();
   uint32_t last_poll_{0};
   bool connected_{false};
-  uint16_t write_handle_{0};
+  uint16_t tx_handle_{0};
+  uint16_t rx_handle_{0};
   
   sensor::Sensor *voltage_sensor_{nullptr};
   sensor::Sensor *current_sensor_{nullptr};
