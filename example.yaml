@@ -1,0 +1,3 @@
+external_components:
+  - source: github://flykatana001/seplos-esphome@main
+    refresh: 0s
