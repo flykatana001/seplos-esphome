@@ -11,17 +11,25 @@ class SeplosBmsBle : public ble_client::BLEClientNode, public Component {
  public:
   void dump_config() override;
   void loop() override;
+  
+  void gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param) override;
 
-  sensor::Sensor *voltage_sensor{nullptr};
-  sensor::Sensor *current_sensor{nullptr};
-  sensor::Sensor *soc_sensor{nullptr};
-  sensor::Sensor *cycle_sensor{nullptr};
-  std::vector<sensor::Sensor*> cell_sensors;
+  void set_voltage_sensor(sensor::Sensor *voltage_sensor) { voltage_sensor_ = voltage_sensor; }
+  void set_current_sensor(sensor::Sensor *current_sensor) { current_sensor_ = current_sensor; }
+  void set_soc_sensor(sensor::Sensor *soc_sensor) { soc_sensor_ = soc_sensor; }
+  void set_cycle_sensor(sensor::Sensor *cycle_sensor) { cycle_sensor_ = cycle_sensor; }
+  void add_cell_sensor(sensor::Sensor *cell_sensor) { cell_sensors_.push_back(cell_sensor); }
 
  protected:
   void on_ble_data(const std::vector<uint8_t> &data);
   void poll_status();
   uint32_t last_poll_{0};
+  
+  sensor::Sensor *voltage_sensor_{nullptr};
+  sensor::Sensor *current_sensor_{nullptr};
+  sensor::Sensor *soc_sensor_{nullptr};
+  sensor::Sensor *cycle_sensor_{nullptr};
+  std::vector<sensor::Sensor*> cell_sensors_;
 };
 
 }  // namespace seplos_bms_ble
