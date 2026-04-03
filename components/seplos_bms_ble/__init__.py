@@ -6,6 +6,10 @@ from esphome.const import (
     UNIT_AMPERE,
     UNIT_PERCENT,
     UNIT_EMPTY,
+    DEVICE_CLASS_VOLTAGE,
+    DEVICE_CLASS_CURRENT,
+    DEVICE_CLASS_BATTERY,
+    STATE_CLASS_MEASUREMENT,
 )
 
 CODEOWNERS = ["@flykatana001"]
@@ -18,11 +22,35 @@ CONF_BLE_CLIENT_ID = "ble_client_id"
 CONFIG_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.declare_id(SeplosBmsBle),
     cv.Required(CONF_BLE_CLIENT_ID): cv.use_id(ble_client.BLEClient),
-    cv.Optional("voltage"): sensor.sensor_schema(UNIT_VOLT),
-    cv.Optional("current"): sensor.sensor_schema(UNIT_AMPERE),
-    cv.Optional("soc"): sensor.sensor_schema(UNIT_PERCENT),
-    cv.Optional("cycles"): sensor.sensor_schema(UNIT_EMPTY),
-    cv.Optional("cells"): cv.ensure_list(sensor.sensor_schema(UNIT_VOLT)),
+    cv.Optional("voltage"): sensor.sensor_schema(
+        unit_of_measurement=UNIT_VOLT,
+        accuracy_decimals=2,
+        device_class=DEVICE_CLASS_VOLTAGE,
+        state_class=STATE_CLASS_MEASUREMENT,
+    ),
+    cv.Optional("current"): sensor.sensor_schema(
+        unit_of_measurement=UNIT_AMPERE,
+        accuracy_decimals=2,
+        device_class=DEVICE_CLASS_CURRENT,
+        state_class=STATE_CLASS_MEASUREMENT,
+    ),
+    cv.Optional("soc"): sensor.sensor_schema(
+        unit_of_measurement=UNIT_PERCENT,
+        accuracy_decimals=0,
+        device_class=DEVICE_CLASS_BATTERY,
+        state_class=STATE_CLASS_MEASUREMENT,
+    ),
+    cv.Optional("cycles"): sensor.sensor_schema(
+        unit_of_measurement=UNIT_EMPTY,
+        accuracy_decimals=0,
+        state_class=STATE_CLASS_MEASUREMENT,
+    ),
+    cv.Optional("cells"): cv.ensure_list(sensor.sensor_schema(
+        unit_of_measurement=UNIT_VOLT,
+        accuracy_decimals=3,
+        device_class=DEVICE_CLASS_VOLTAGE,
+        state_class=STATE_CLASS_MEASUREMENT,
+    )),
 })
 
 async def to_code(config):
