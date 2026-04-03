@@ -6,50 +6,70 @@ from esphome.const import (
     UNIT_AMPERE,
     UNIT_PERCENT,
     UNIT_EMPTY,
+    DEVICE_CLASS_VOLTAGE,
+    DEVICE_CLASS_CURRENT,
+    DEVICE_CLASS_BATTERY,
+    STATE_CLASS_MEASUREMENT,
 )
 
-from . import seplos_bms_ble_ns
+CODEOWNERS = ["@flykatana001"]
 
+seplos_bms_ble_ns = cg.esphome_ns.namespace("seplos_bms_ble")
 SeplosBmsBle = seplos_bms_ble_ns.class_("SeplosBmsBle", ble_client.BLEClientNode, cg.Component)
-
 
 CONF_BLE_CLIENT_ID = "ble_client_id"
 
 CONFIG_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.declare_id(SeplosBmsBle),
     cv.Required(CONF_BLE_CLIENT_ID): cv.use_id(ble_client.BLEClient),
-
-    cv.Optional("voltage"): sensor.sensor_schema(UNIT_VOLT),
-    cv.Optional("current"): sensor.sensor_schema(UNIT_AMPERE),
-    cv.Optional("soc"): sensor.sensor_schema(UNIT_PERCENT),
-    cv.Optional("cycles"): sensor.sensor_schema(UNIT_EMPTY),
-
-    cv.Optional("cells"): cv.ensure_list(sensor.sensor_schema(UNIT_VOLT)),
+    cv.Optional("voltage"): sensor.sensor_schema(
+        unit_of_measurement=UNIT_VOLT,
+        accuracy_decimals=2,
+        device_class=DEVICE_CLASS_VOLTAGE,
+        state_class=STATE_CLASS_MEASUREMENT,
+    ),
+    cv.Optional("current"): sensor.sensor_schema(
+        unit_of_measurement=UNIT_AMPERE,
+        accuracy_decimals=2,
+        device_class=DEVICE_CLASS_CURRENT,
+        state_class=STATE_CLASS_MEASUREMENT,
+    ),
+    cv.Optional("soc"): sensor.sensor_schema(
+        unit_of_measurement=UNIT_PERCENT,
+        accuracy_decimals=0,
+        device_class=DEVICE_CLASS_BATTERY,
+        state_class=STATE_CLASS_MEASUREMENT,
+    ),
+    cv.Optional("cycles"): sensor.sensor_schema(
+        unit_of_measurement=UNIT_EMPTY,
+        accuracy_decimals=0,
+        state_class=STATE_CLASS_MEASUREMENT,
+    ),
+    cv.Optional("cells"): cv.ensure_list(sensor.sensor_schema(
+        unit_of_measurement=UNIT_VOLT,
+        accuracy_decimals=3,
+        device_class=DEVICE_CLASS_VOLTAGE,
+        state_class=STATE_CLASS_MEASUREMENT,
+    )),
 })
 
 async def to_code(config):
     var = cg.new_Pvariable(config["id"])
     await cg.register_component(var, config)
-
     parent = await cg.get_variable(config[CONF_BLE_CLIENT_ID])
     cg.add(var.set_parent(parent))
-
     if "voltage" in config:
         sens = await sensor.new_sensor(config["voltage"])
         cg.add(var.set_voltage_sensor(sens))
-
     if "current" in config:
         sens = await sensor.new_sensor(config["current"])
         cg.add(var.set_current_sensor(sens))
-
     if "soc" in config:
         sens = await sensor.new_sensor(config["soc"])
         cg.add(var.set_soc_sensor(sens))
-
     if "cycles" in config:
         sens = await sensor.new_sensor(config["cycles"])
         cg.add(var.set_cycle_sensor(sens))
-
     if "cells" in config:
         for cell_cfg in config["cells"]:
             sens = await sensor.new_sensor(cell_cfg)
