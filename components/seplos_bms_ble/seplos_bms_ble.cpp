@@ -5,8 +5,20 @@ namespace esphome {
 namespace seplos_bms_ble {
 
 static const char *TAG = "seplos_bms_ble";
-static const uint16_t SEPLOS_SERVICE_UUID = 0xFFE0;
-static const uint16_t SEPLOS_CHAR_UUID = 0xFFE1;
+
+// Seplos BMS BLE UUIDs
+static const esp_bt_uuid_t SEPLOS_SERVICE_UUID = {
+  .len = ESP_UUID_LEN_128,
+  .uuid = {.uuid128 = {0xFB, 0x34, 0x9B, 0x5F, 0x80, 0x00, 0x00, 0x80, 0x00, 0x10, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00}}
+};
+static const esp_bt_uuid_t SEPLOS_TX_CHAR_UUID = {
+  .len = ESP_UUID_LEN_128,
+  .uuid = {.uuid128 = {0xFB, 0x34, 0x9B, 0x5F, 0x80, 0x00, 0x00, 0x80, 0x00, 0x10, 0x00, 0x00, 0x01, 0xFF, 0x00, 0x00}}
+};
+static const esp_bt_uuid_t SEPLOS_RX_CHAR_UUID = {
+  .len = ESP_UUID_LEN_128,
+  .uuid = {.uuid128 = {0xFB, 0x34, 0x9B, 0x5F, 0x80, 0x00, 0x00, 0x80, 0x00, 0x10, 0x00, 0x00, 0x02, 0xFF, 0x00, 0x00}}
+};
 
 void SeplosBmsBle::dump_config() {
   ESP_LOGCONFIG(TAG, "Seplos V2 BLE BMS");
@@ -14,7 +26,7 @@ void SeplosBmsBle::dump_config() {
 
 void SeplosBmsBle::loop() {
   const uint32_t now = millis();
-  if (connected_ && write_handle_ != 0 && now - last_poll_ > 3000) {
+  if (connected_ && rx_handle_ != 0 && now - last_poll_ > 3000) {
     poll_status();
     last_poll_ = now;
   }
@@ -27,18 +39,27 @@ void SeplosBmsBle::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t
       break;
     case ESP_GATTC_DISCONNECT_EVT:
       connected_ = false;
-      write_handle_ = 0;
+      tx_handle_ = 0;
+      rx_handle_ = 0;
       break;
     case ESP_GATTC_SEARCH_CMPL_EVT: {
-      auto *chr = this->parent()->get_characteristic(SEPLOS_SERVICE_UUID, SEPLOS_CHAR_UUID);
-      if (chr != nullptr) {
-        write_handle_ = chr->handle;
-        this->parent()->set_notifications(write_handle_, true);
+      // Find TX characteristic (notifications)
+      auto *tx_chr = this->parent()->get_characteristic(SEPLOS_SERVICE_UUID, SEPLOS_TX_CHAR_UUID);
+      if (tx_chr != nullptr) {
+        tx_handle_ = tx_chr->handle;
+        esp_ble_gattc_register_for_notify(gattc_if, this->parent()->remote_bda, tx_handle_);
+      }
+      // Find RX characteristic (write)
+      auto *rx_chr = this->parent()->get_characteristic(SEPLOS_SERVICE_UUID, SEPLOS_RX_CHAR_UUID);
+      if (rx_chr != nullptr) {
+        rx_handle_ = rx_chr->handle;
       }
       break;
     }
     case ESP_GATTC_NOTIFY_EVT:
-      this->on_ble_data(std::vector<uint8_t>(param->notify.value, param->notify.value + param->notify.value_len));
+      if (param->notify.handle == tx_handle_) {
+        this->on_ble_data(std::vector<uint8_t>(param->notify.value, param->notify.value + param->notify.value_len));
+      }
       break;
     default:
       break;
@@ -48,7 +69,7 @@ void SeplosBmsBle::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t
 void SeplosBmsBle::poll_status() {
   uint8_t frame[] = {0xDD, 0xA5, 0x03, 0x00, 0xFF, 0xFD, 0x77};
   esp_ble_gattc_write_char(this->parent()->get_gattc_if(), this->parent()->get_conn_id(), 
-                           write_handle_, sizeof(frame), frame, 
+                           rx_handle_, sizeof(frame), frame, 
                            ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
 }
 
