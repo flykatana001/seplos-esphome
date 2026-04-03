@@ -26,7 +26,7 @@ CONFIG_SCHEMA = cv.Schema({
 })
 
 async def to_code(config):
-    var = cg.new_Pvariable(config[AL:"id"])
+    var = cg.new_Pvariable(config["id"])
     await cg.register_component(var, config)
     parent = await cg.get_variable(config[CONF_BLE_CLIENT_ID])
     cg.add(var.set_parent(parent))
