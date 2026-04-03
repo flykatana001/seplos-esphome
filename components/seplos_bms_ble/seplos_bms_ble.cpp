@@ -33,7 +33,7 @@ void SeplosBmsBle::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t
       auto *chr = this->parent()->get_characteristic(SEPLOS_SERVICE_UUID, SEPLOS_CHAR_UUID);
       if (chr != nullptr) {
         write_handle_ = chr->handle;
-        esp_ble_gattc_register_for_notify(this->parent()->get_gattc_if(), this->parent()->get_conn_id(), &write_handle_);
+        this->parent()->set_notifications(write_handle_, true);
       }
       break;
     }
