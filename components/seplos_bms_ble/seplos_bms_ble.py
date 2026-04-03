@@ -8,8 +8,10 @@ from esphome.const import (
     UNIT_EMPTY,
 )
 
-seplos_ns = cg.esphome_ns.namespace("seplos_bms_ble")
-SeplosBmsBle = seplos_ns.class_("SeplosBmsBle", ble_client.BLEClientNode, cg.Component)
+from . import seplos_bms_ble_ns
+
+SeplosBmsBle = seplos_bms_ble_ns.class_("SeplosBmsBle", ble_client.BLEClientNode, cg.Component)
+
 
 CONF_BLE_CLIENT_ID = "ble_client_id"
 
